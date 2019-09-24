@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/kubebuilder/pkg/scaffold/util"
 	"sigs.k8s.io/kubebuilder/pkg/scaffold/v1/resource"
 	"sigs.k8s.io/kubebuilder/pkg/scaffold/v2/internal"
+
 )
 
 const (
@@ -136,7 +137,9 @@ import (
     ctrl "sigs.k8s.io/controller-runtime"
     "sigs.k8s.io/controller-runtime/pkg/log/zap"
     "k8s.io/apimachinery/pkg/runtime"
-
+	kubemetrics "sigs.k8s.io/kubebuilder/pkg/kube-metrics"
+    "sigs.k8s.io/kubebuilder/pkg/k8sutil"
+	"sigs.k8s.io/kubebuilder/pkg/metrics"
 
 	%s
 )
@@ -144,6 +147,13 @@ import (
 var (
 	scheme = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+)
+
+// Change below variables to serve metrics on different host or port.
+const (
+	metricsHost               = "0.0.0.0"
+	metricsPort         int32 = 8080
+	operatorMetricsPort int32 = 8443
 )
 
 func init() {
@@ -157,12 +167,18 @@ func main() {
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
-		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	flag.Parse()
 
-	ctrl.SetLogger(zap.Logger(true))
+    ctrl.SetLogger(zap.Logger(true))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+    // Get a config to talk to the apiserver
+    cfg, err := config.GetConfig()
+    if err != nil {
+       setupLog.Error(err, "unable to get config manager")
+       os.Exit(1)
+    }
+
+    // Create a new Cmd to provide shared dependencies and start components
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
@@ -173,13 +189,66 @@ func main() {
 		os.Exit(1)
 	}
 
-
 	%s
 
+    // Metrics 
+	if err = serveCRMetrics(cfg); err != nil {
+		log.Info("Could not generate and serve custom resource metrics", "error", err.Error())
+	}
+
+	// Add to the below struct any other metrics ports you want to expose.
+	servicePorts := []v1.ServicePort{
+		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
+		{Port: operatorMetricsPort, Name: metrics.CRPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: operatorMetricsPort}},
+	}
+	// Create Service object to expose the metrics port(s).
+	service, err := metrics.CreateMetricsService(ctx, cfg, servicePorts)
+	if err != nil {
+		log.Info("Could not create metrics Service", "error", err.Error())
+	}
+
+	// CreateServiceMonitors will automatically create the prometheus-operator ServiceMonitor resources
+	// necessary to configure Prometheus to scrape metrics from this operator project.
+	services := []*v1.Service{service}
+	_, err = metrics.CreateServiceMonitors(cfg, namespace, services)
+	if err != nil {
+		log.Info("Could not create ServiceMonitor object", "error", err.Error())
+		// If this operator is deployed to a cluster without the prometheus-operator running, it will return
+		// ErrServiceMonitorNotPresent, which can be used to safely skip ServiceMonitor creation.
+		if err == metrics.ErrServiceMonitorNotPresent {
+			log.Info("Install prometheus-operator in your cluster to create ServiceMonitor objects", "error", err.Error())
+		}
+	}
+
+    //Start the manager 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// serveCRMetrics gets the Operator/CustomResource GVKs and generates metrics based on those types.
+// It serves those metrics on "http://metricsHost:operatorMetricsPort".
+func serveCRMetrics(cfg *rest.Config) error {
+	// Below function returns filtered operator/CustomResource specific GVKs.
+	// For more control override the below GVK list with your own custom logic.
+	filteredGVK, err := k8sutil.GetGVKsFromAddToScheme(apis.AddToScheme)
+	if err != nil {
+		return err
+	}
+	// Get the namespace the operator is currently deployed in.
+	operatorNs, err := k8sutil.GetOperatorNamespace()
+	if err != nil {
+		return err
+	}
+	// To generate metrics in other namespaces, add the values below.
+	ns := []string{operatorNs}
+	// Generate and serve custom resource specific metrics.
+	err = kubemetrics.GenerateAndServeCRMetrics(cfg, ns, filteredGVK, metricsHost, operatorMetricsPort)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 `, apiPkgImportScaffoldMarker, apiSchemeScaffoldMarker, reconcilerSetupScaffoldMarker)

@@ -48,7 +48,7 @@ Writes the following files:
 - a go.mod with project dependencies
 - a Kustomization.yaml for customizating manifests
 - a Patch file for customizing image for manager manifests
-- a Patch file for enabling prometheus metrics
+- a Patch file for enabling prometheus kube-metrics
 - a cmd/manager/main.go to run
 
 project will prompt the user to run 'dep ensure' after writing the project files.

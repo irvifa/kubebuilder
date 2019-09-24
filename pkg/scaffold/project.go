@@ -194,7 +194,6 @@ func (p *V2Project) Scaffold() error {
 		p.buildUniverse(),
 		input.Options{ProjectPath: projectInput.Path, BoilerplatePath: bpInput.Path},
 		&project.GitIgnore{},
-		&metricsauthv2.KustomizePrometheusMetricsPatch{},
 		&metricsauthv2.KustomizeAuthProxyPatch{},
 		&scaffoldv2.AuthProxyService{},
 		&project.AuthProxyRole{},
