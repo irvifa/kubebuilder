@@ -34,10 +34,6 @@ import (
 	shipv1 "sigs.k8s.io/kubebuilder/testdata/project-v2-multigroup/apis/ship/v1"
 	shipv1beta1 "sigs.k8s.io/kubebuilder/testdata/project-v2-multigroup/apis/ship/v1beta1"
 	shipv2alpha1 "sigs.k8s.io/kubebuilder/testdata/project-v2-multigroup/apis/ship/v2alpha1"
-	crewcontroller "sigs.k8s.io/kubebuilder/testdata/project-v2-multigroup/controllers/crew"
-	foopolicycontroller "sigs.k8s.io/kubebuilder/testdata/project-v2-multigroup/controllers/foo.policy"
-	seacreaturescontroller "sigs.k8s.io/kubebuilder/testdata/project-v2-multigroup/controllers/sea-creatures"
-	shipcontroller "sigs.k8s.io/kubebuilder/testdata/project-v2-multigroup/controllers/ship"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -82,68 +78,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&crewcontroller.CaptainReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Captain"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Captain")
-		os.Exit(1)
-	}
 	if err = (&crewv1.Captain{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Captain")
 		os.Exit(1)
 	}
-	if err = (&shipcontroller.FrigateReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Frigate"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Frigate")
-		os.Exit(1)
-	}
 	if err = (&shipv1beta1.Frigate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Frigate")
-		os.Exit(1)
-	}
-	if err = (&shipcontroller.DestroyerReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Destroyer"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Destroyer")
-		os.Exit(1)
-	}
-	if err = (&shipcontroller.CruiserReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Cruiser"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Cruiser")
-		os.Exit(1)
-	}
-	if err = (&seacreaturescontroller.KrakenReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Kraken"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Kraken")
-		os.Exit(1)
-	}
-	if err = (&seacreaturescontroller.LeviathanReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Leviathan"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Leviathan")
-		os.Exit(1)
-	}
-	if err = (&foopolicycontroller.HealthCheckPolicyReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("HealthCheckPolicy"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "HealthCheckPolicy")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

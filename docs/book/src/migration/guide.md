@@ -117,19 +117,6 @@ type CronJob struct {...}
 type CronJobList struct {...}
 ```
 
-### Migrate the Controllers
-
-Now, let's migrate the controller reconciler code from
-`pkg/controller/cronjob/cronjob_controller.go` to
-`controllers/cronjob_controller.go`.
-
-We'll need to copy
-- the fields from the `ReconcileCronJob` struct to `CronJobReconciler`
-- the contents of the `Reconcile` function
-- the [rbac related markers](/reference/markers/rbac.md) to the new file.
-- the code under `func add(mgr manager.Manager, r reconcile.Reconciler) error`
-to `func SetupWithManager`
-
 ## Migrate the Webhooks
 
 If you don't have a webhook, you can skip this section.

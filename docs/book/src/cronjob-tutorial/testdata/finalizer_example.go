@@ -19,7 +19,7 @@ First, we start out with some standard imports.
 As before, we need the core controller-runtime library, as well as
 the client package, and the package for our API types.
 */
-package controllers
+package controller
 
 import (
 	"context"

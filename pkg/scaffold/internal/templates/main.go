@@ -108,26 +108,9 @@ const (
 `
 	controllerImportCodeFragment = `"%s/controllers"
 `
-	// TODO(v3): `&%scontrollers` should be used instead of `&%scontroller` as there may be multiple
-	//  controller for different Kinds in the same group. However, this is a backwards incompatible
-	//  change, and thus should be done for next project version.
-	multiGroupControllerImportCodeFragment = `%scontroller "%s/controllers/%s"
-`
 	addschemeCodeFragment = `utilruntime.Must(%s.AddToScheme(scheme))
 `
 	reconcilerSetupCodeFragment = `if err = (&controllers.%sReconciler{
-		Client: mgr.GetClient(),
-		Log: ctrl.Log.WithName("controllers").WithName("%s"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "%s")
-		os.Exit(1)
-	}
-`
-	// TODO(v3): loggers for the same Kind controllers from different groups use the same logger.
-	//  `.WithName("controllers").WithName(GROUP).WithName(KIND)` should be used instead. However,
-	//  this is a backwards incompatible change, and thus should be done for next project version.
-	multiGroupReconcilerSetupCodeFragment = `if err = (&%scontroller.%sReconciler{
 		Client: mgr.GetClient(),
 		Log: ctrl.Log.WithName("controllers").WithName("%s"),
 		Scheme: mgr.GetScheme(),
@@ -158,9 +141,6 @@ func (f *MainUpdater) GetCodeFragments() file.CodeFragmentsMap {
 	if f.WireController {
 		if !f.MultiGroup {
 			imports = append(imports, fmt.Sprintf(controllerImportCodeFragment, f.Repo))
-		} else {
-			imports = append(imports, fmt.Sprintf(multiGroupControllerImportCodeFragment,
-				f.Resource.GroupPackageName, f.Repo, f.Resource.Group))
 		}
 	}
 
@@ -174,9 +154,6 @@ func (f *MainUpdater) GetCodeFragments() file.CodeFragmentsMap {
 		if !f.MultiGroup {
 			setup = append(setup, fmt.Sprintf(reconcilerSetupCodeFragment,
 				f.Resource.Kind, f.Resource.Kind, f.Resource.Kind))
-		} else {
-			setup = append(setup, fmt.Sprintf(multiGroupReconcilerSetupCodeFragment,
-				f.Resource.GroupPackageName, f.Resource.Kind, f.Resource.Kind, f.Resource.Kind))
 		}
 	}
 	if f.WireWebhook {
