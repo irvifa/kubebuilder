@@ -19,12 +19,14 @@ package scaffold
 import (
 	"fmt"
 
+	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/machinery"
+	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates"
+	templatesv3 "sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/v3"
+	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/webhook"
+
 	"sigs.k8s.io/kubebuilder/pkg/model"
 	"sigs.k8s.io/kubebuilder/pkg/model/config"
 	"sigs.k8s.io/kubebuilder/pkg/model/resource"
-	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/machinery"
-	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates"
-	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/webhook"
 )
 
 var _ Scaffolder = &webhookScaffolder{}
@@ -83,12 +85,22 @@ func (s *webhookScaffolder) scaffold() error {
 You need to implement the conversion.Hub and conversion.Convertible interfaces for your CRD types.`)
 	}
 
-	if err := machinery.NewScaffold().Execute(
-		s.newUniverse(),
-		&webhook.Webhook{Defaulting: s.defaulting, Validating: s.validation},
-		&templates.MainUpdater{WireWebhook: true},
-	); err != nil {
-		return err
+	if s.config.IsV2() {
+		if err := machinery.NewScaffold().Execute(
+			s.newUniverse(),
+			&webhook.Webhook{Defaulting: s.defaulting, Validating: s.validation},
+			&templates.MainUpdater{WireWebhook: true},
+		); err != nil {
+			return err
+		}
+	} else {
+		if err := machinery.NewScaffold().Execute(
+			s.newUniverse(),
+			&webhook.Webhook{Defaulting: s.defaulting, Validating: s.validation},
+			&templatesv3.MainUpdater{WireWebhook: true},
+		); err != nil {
+			return err
+		}
 	}
 
 	return nil
