@@ -24,9 +24,9 @@ import (
 	"sigs.k8s.io/kubebuilder/pkg/model/resource"
 	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/machinery"
 	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates"
+	templatesv3 "sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/v3"
 	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/controller"
 	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/crd"
-	templatesv3 "sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/v3"
 )
 
 var _ Scaffolder = &apiScaffolder{}
@@ -68,8 +68,10 @@ func (s *apiScaffolder) Scaffold() error {
 	fmt.Println("Writing scaffold for you to edit...")
 
 	switch {
-	case s.config.IsV2(), s.config.IsV3():
+	case s.config.IsV2():
 		return s.scaffold()
+	case s.config.IsV3():
+		return s.scaffoldV3()
 	default:
 		return fmt.Errorf("unknown project version %v", s.config.Version)
 	}
@@ -120,20 +122,58 @@ func (s *apiScaffolder) scaffold() error {
 		}
 	}
 
-	if s.config.IsV2() {
+	if err := machinery.NewScaffold(s.plugins...).Execute(
+		s.newUniverse(),
+		&templates.MainUpdater{WireResource: s.doResource, WireController: s.doController},
+	); err != nil {
+		return fmt.Errorf("error updating main.go: %v", err)
+	}
+
+	return nil
+}
+
+func (s *apiScaffolder) scaffoldV3() error {
+	if s.doResource {
+		s.config.AddResource(s.resource.GVK())
+
 		if err := machinery.NewScaffold(s.plugins...).Execute(
 			s.newUniverse(),
-			&templates.MainUpdater{WireResource: s.doResource, WireController: s.doController},
+			&templates.Types{},
+			&templates.Group{},
+			&templates.CRDSample{},
+			&templates.CRDEditorRole{},
+			&templates.CRDViewerRole{},
+			&crd.EnableWebhookPatch{},
+			&crd.EnableCAInjectionPatch{},
 		); err != nil {
-			return fmt.Errorf("error updating main.go: %v", err)
+			return fmt.Errorf("error scaffolding APIs: %v", err)
 		}
-	} else {
+
+		if err := machinery.NewScaffold().Execute(
+			s.newUniverse(),
+			&crd.Kustomization{},
+			&crd.KustomizeConfig{},
+		); err != nil {
+			return fmt.Errorf("error scaffolding kustomization: %v", err)
+		}
+
+	}
+
+	if s.doController {
 		if err := machinery.NewScaffold(s.plugins...).Execute(
 			s.newUniverse(),
-			&templatesv3.MainUpdater{WireResource: s.doResource, WireController: s.doController},
+			&controller.SuiteTest{},
+			&controller.Controller{},
 		); err != nil {
-			return fmt.Errorf("error updating main.go: %v", err)
+			return fmt.Errorf("error scaffolding controller: %v", err)
 		}
+	}
+
+	if err := machinery.NewScaffold(s.plugins...).Execute(
+		s.newUniverse(),
+		&templatesv3.MainUpdater{WireResource: s.doResource, WireController: s.doController},
+	); err != nil {
+		return fmt.Errorf("error updating main.go: %v", err)
 	}
 
 	return nil

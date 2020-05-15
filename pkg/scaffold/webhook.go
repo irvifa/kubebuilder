@@ -19,14 +19,13 @@ package scaffold
 import (
 	"fmt"
 
-	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/machinery"
-	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates"
-	templatesv3 "sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/v3"
-	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/webhook"
-
 	"sigs.k8s.io/kubebuilder/pkg/model"
 	"sigs.k8s.io/kubebuilder/pkg/model/config"
 	"sigs.k8s.io/kubebuilder/pkg/model/resource"
+	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/machinery"
+	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates"
+	"sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/webhook"
+    templatesv3 "sigs.k8s.io/kubebuilder/pkg/scaffold/internal/templates/v3"
 )
 
 var _ Scaffolder = &webhookScaffolder{}
@@ -64,8 +63,10 @@ func (s *webhookScaffolder) Scaffold() error {
 	fmt.Println("Writing scaffold for you to edit...")
 
 	switch {
-	case s.config.IsV2(), s.config.IsV3():
+	case s.config.IsV2():
 		return s.scaffold()
+	case s.config.IsV3():
+		return s.scaffoldV3()
 	default:
 		return fmt.Errorf("unknown project version %v", s.config.Version)
 	}
@@ -85,22 +86,30 @@ func (s *webhookScaffolder) scaffold() error {
 You need to implement the conversion.Hub and conversion.Convertible interfaces for your CRD types.`)
 	}
 
-	if s.config.IsV2() {
-		if err := machinery.NewScaffold().Execute(
-			s.newUniverse(),
-			&webhook.Webhook{Defaulting: s.defaulting, Validating: s.validation},
-			&templates.MainUpdater{WireWebhook: true},
-		); err != nil {
-			return err
-		}
-	} else {
-		if err := machinery.NewScaffold().Execute(
-			s.newUniverse(),
-			&webhook.Webhook{Defaulting: s.defaulting, Validating: s.validation},
-			&templatesv3.MainUpdater{WireWebhook: true},
-		); err != nil {
-			return err
-		}
+	if err := machinery.NewScaffold().Execute(
+		s.newUniverse(),
+		&webhook.Webhook{Defaulting: s.defaulting, Validating: s.validation},
+		&templates.MainUpdater{WireWebhook: true},
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+func (s *webhookScaffolder) scaffoldV3() error {
+	if s.conversion {
+		fmt.Println(`Webhook server has been set up for you.
+You need to implement the conversion.Hub and conversion.Convertible interfaces for your CRD types.`)
+	}
+
+	if err := machinery.NewScaffold().Execute(
+		s.newUniverse(),
+		&webhook.Webhook{Defaulting: s.defaulting, Validating: s.validation},
+		&templatesv3.MainUpdater{WireWebhook: true},
+	); err != nil {
+		return err
 	}
 
 	return nil
