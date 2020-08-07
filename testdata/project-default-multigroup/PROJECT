@@ -1,0 +1,5 @@
+domain: testproject.org
+layout: go.kubebuilder.io/v2
+projectName: project-default-multigroup
+repo: sigs.k8s.io/kubebuilder/testdata/project-default-multigroup
+version: 3-alpha

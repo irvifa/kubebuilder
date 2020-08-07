@@ -1,0 +1,5 @@
+domain: testproject.org
+layout: go.kubebuilder.io/v2
+projectName: project-default
+repo: sigs.k8s.io/kubebuilder/testdata/project-default
+version: 3-alpha

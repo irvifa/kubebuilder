@@ -42,6 +42,49 @@ scaffold_test_project() {
     # Set "--plugins $plugin" if $plugin is not null.
     local plugin_flag="${plugin:+--plugins $plugin}"
 
+    if [ $version == "-1" ] ; then
+      echo "scaffolding default"
+
+      header_text "Starting to generate projects with defaults"
+      header_text "Generating $project"
+
+      export GO111MODULE=on
+      export PATH=$PATH:$(go env GOPATH)/bin
+      go mod init sigs.k8s.io/kubebuilder/testdata/$project  # our repo autodetection will traverse up to the kb module if we don't do this
+
+      header_text "initializing $project ..."
+      $kb init  --domain testproject.org --license apache2 --owner "The Kubernetes authors"
+
+      if [ $project == "project-v2" ] || [ $project == "project-v3" ]; then
+          header_text 'Creating APIs ...'
+          $kb create api --group crew --version v1 --kind Captain --controller=true --resource=true --make=false
+          $kb create webhook --group crew --version v1 --kind Captain --defaulting --programmatic-validation
+          $kb create api --group crew --version v1 --kind FirstMate --controller=true --resource=true --make=false
+          $kb create webhook --group crew --version v1 --kind FirstMate --conversion
+          $kb create api --group crew --version v1 --kind Admiral --controller=true --resource=true --namespaced=false --make=false
+      elif [ $project == "project-v2-multigroup" ] || [ $project == "project-v3-multigroup" ]; then
+          header_text 'Switching to multigroup layout ...'
+          $kb edit --multigroup=true
+
+          header_text 'Creating APIs ...'
+          $kb create api --group crew --version v1 --kind Captain --controller=true --resource=true --make=false
+          $kb create webhook --group crew --version v1 --kind Captain --defaulting --programmatic-validation
+          $kb create api --group ship --version v1beta1 --kind Frigate --controller=true --resource=true --make=false
+          $kb create webhook --group ship --version v1beta1 --kind Frigate --conversion
+          $kb create api --group ship --version v1 --kind Destroyer --controller=true --resource=true --namespaced=false --make=false
+          $kb create api --group ship --version v2alpha1 --kind Cruiser --controller=true --resource=true --namespaced=false --make=false
+          $kb create api --group sea-creatures --version v1beta1 --kind Kraken --controller=true --resource=true --make=false
+          $kb create api --group sea-creatures --version v1beta2 --kind Leviathan --controller=true --resource=true --make=false
+          $kb create api --group foo.policy --version v1 --kind HealthCheckPolicy --controller=true --resource=true --make=false
+        elif [ $project == "project-v2-addon" ] || [ $project == "project-v3-addon" ]; then
+          header_text 'enabling --pattern flag ...'
+          export KUBEBUILDER_ENABLE_PLUGINS=1
+          header_text 'Creating APIs ...'
+          $kb create api --group crew --version v1 --kind Captain --controller=true --resource=true --pattern=addon
+          $kb create api --group crew --version v1 --kind FirstMate --controller=true --resource=true --make=false --pattern=addon
+          $kb create api --group crew --version v1 --kind Admiral --controller=true --resource=true --namespaced=false --make=false --pattern=addon
+      fi
+    fi
     if [ $version == "2" ] || [ $version == "3-alpha" ]; then
         if [ $version == "2" ] && [ -n "$plugin_flag" ]; then
           echo "--plugins flag may not be set for project versions less than 3"
@@ -98,6 +141,9 @@ scaffold_test_project() {
 set -e
 
 build_kb
+scaffold_test_project project-default -1
+scaffold_test_project project-default-multigroup -1
+scaffold_test_project project-default-addon -1
 scaffold_test_project project-v2 2
 scaffold_test_project project-v2-multigroup 2
 scaffold_test_project project-v2-addon 2
