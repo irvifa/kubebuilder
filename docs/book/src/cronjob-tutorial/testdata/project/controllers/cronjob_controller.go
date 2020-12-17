@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-// +kubebuilder:docs-gen:collapse=Apache License
+//+kubebuilder:docs-gen:collapse=Apache License
 
 /*
 We'll start out with some imports.  You'll see below that we'll need a few more imports

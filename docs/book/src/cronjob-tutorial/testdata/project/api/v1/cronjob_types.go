@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-// +kubebuilder:docs-gen:collapse=Apache License
+//+kubebuilder:docs-gen:collapse=Apache License
 
 /*
  */
@@ -67,7 +67,7 @@ type CronJobSpec struct {
 	// The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron.
 	Schedule string `json:"schedule"`
 
-	// +kubebuilder:validation:Minimum=0
+	//+kubebuilder:validation:Minimum=0
 
 	// Optional deadline in seconds for starting the job if it misses scheduled
 	// time for any reason.  Missed jobs executions will be counted as failed ones.
@@ -116,7 +116,7 @@ making the validation more easily reusable.
 // Only one of the following concurrent policies may be specified.
 // If none of the following policies is specified, the default one
 // is AllowConcurrent.
-// +kubebuilder:validation:Enum=Allow;Forbid;Replace
+//+kubebuilder:validation:Enum=Allow;Forbid;Replace
 type ConcurrencyPolicy string
 
 const (
@@ -160,8 +160,8 @@ As previously noted, we don't need to change this, except to mark that
 we want a status subresource, so that we behave like built-in kubernetes types.
 */
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // CronJob is the Schema for the cronjobs API
 type CronJob struct {
@@ -187,4 +187,4 @@ func init() {
 	SchemeBuilder.Register(&CronJob{}, &CronJobList{})
 }
 
-// +kubebuilder:docs-gen:collapse=Root Object Definitions
+//+kubebuilder:docs-gen:collapse=Root Object Definitions
